@@ -2,7 +2,7 @@
    NYC Room Classifier – frontend logic
    ========================================================= */
 
-const DEFAULT_API = "http://127.0.0.1:8000";
+const DEFAULT_API = "https://nyc-room-type-classification.onrender.com";
 let API_URL = (() => {
   try { return localStorage.getItem("nyc_api_url") || DEFAULT_API; } catch { return DEFAULT_API; }
 })();
