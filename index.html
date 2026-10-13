@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NYC Room Classifier</title>
+  <meta name="theme-color" content="#0a0b14" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="bg"></canvas>
+  <div class="glow glow-a"></div>
+  <div class="glow glow-b"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">🏙️</span>
+      <div>
+        <h1>NYC Room Classifier</h1>
+        <p>Predict the Airbnb room type from listing details</p>
+      </div>
+    </div>
+    <div class="api-box">
+      <div id="status" class="status checking" title="API status">
+        <span class="dot"></span><span id="statusText">Checking API…</span>
+      </div>
+      <button id="apiBtn" class="icon-btn" type="button" title="Change API URL" aria-label="Change API URL">⚙</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- FORM -->
+    <section class="card form-card reveal" id="formCard">
+      <div class="card-head">
+        <h2>Listing details</h2>
+        <div class="presets">
+          <span>Try:</span>
+          <button type="button" class="chip" data-preset="manhattan">Manhattan flat</button>
+          <button type="button" class="chip" data-preset="brooklyn">Brooklyn room</button>
+          <button type="button" class="chip" data-preset="queens">Queens budget</button>
+          <button type="button" class="chip ghost" data-preset="random">🎲 Random</button>
+        </div>
+      </div>
+
+      <form id="form" novalidate>
+        <fieldset>
+          <legend><span class="num">1</span> Location</legend>
+          <div class="grid">
+            <label class="field">
+              <span>Neighbourhood group</span>
+              <select id="neighbourhood_group" required>
+                <option value="" disabled selected>Select borough</option>
+                <option>Manhattan</option>
+                <option>Brooklyn</option>
+                <option>Queens</option>
+                <option>Bronx</option>
+                <option>Staten Island</option>
+              </select>
+              <small class="err"></small>
+            </label>
+            <label class="field">
+              <span>Neighbourhood</span>
+              <input id="neighbourhood" list="hoods" placeholder="e.g. Harlem" autocomplete="off" required />
+              <datalist id="hoods"></datalist>
+              <small class="err"></small>
+            </label>
+            <label class="field">
+              <span>Latitude</span>
+              <input id="latitude" type="number" step="any" min="-90" max="90" placeholder="40.7128" required />
+              <small class="err"></small>
+            </label>
+            <label class="field">
+              <span>Longitude</span>
+              <input id="longitude" type="number" step="any" min="-180" max="180" placeholder="-74.0060" required />
+              <small class="err"></small>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend><span class="num">2</span> Booking</legend>
+          <div class="grid">
+            <label class="field">
+              <span>Price per night ($)</span>
+              <input id="price" type="number" min="1" step="any" placeholder="120" required />
+              <small class="err"></small>
+            </label>
+            <div class="field">
+              <span>Minimum nights</span>
+              <div class="stepper" data-for="minimum_nights">
+                <button type="button" data-dir="-1" aria-label="Decrease">−</button>
+                <input id="minimum_nights" type="number" min="1" max="365" value="1" required />
+                <button type="button" data-dir="1" aria-label="Increase">+</button>
+              </div>
+              <small class="err"></small>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend><span class="num">3</span> Activity &amp; host</legend>
+          <div class="grid">
+            <label class="field">
+              <span>Number of reviews</span>
+              <input id="number_of_reviews" type="number" min="0" step="1" placeholder="25" required />
+              <small class="err"></small>
+            </label>
+            <label class="field">
+              <span>Reviews per month</span>
+              <input id="reviews_per_month" type="number" min="0" step="any" placeholder="1.2" required />
+              <small class="err"></small>
+            </label>
+            <label class="field">
+              <span>Host listings count</span>
+              <input id="calculated_host_listings_count" type="number" min="0" step="1" placeholder="1" required />
+              <small class="err"></small>
+            </label>
+            <div class="field">
+              <span>Availability <b id="availOut">180</b> / 365 days</span>
+              <input id="availability_365" type="range" min="0" max="365" value="180" />
+              <div class="meter"><i id="availFill"></i></div>
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="actions">
+          <button type="button" id="resetBtn" class="btn secondary">Reset</button>
+          <button type="submit" id="submitBtn" class="btn primary">
+            <span class="btn-label">Predict room type</span>
+            <span class="spinner" aria-hidden="true"></span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- RESULT -->
+    <aside class="side">
+      <section class="card result-card reveal" id="resultCard">
+        <h2>Prediction</h2>
+
+        <div id="empty" class="empty">
+          <div class="orb"><span>?</span></div>
+          <p>Fill in the listing details and hit <b>Predict</b> to see what kind of room this is.</p>
+        </div>
+
+        <div id="result" class="result hidden">
+          <div class="ring-wrap">
+            <svg viewBox="0 0 120 120" class="ring">
+              <defs>
+                <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#7c5cff" />
+                  <stop offset="100%" stop-color="#22d3ee" />
+                </linearGradient>
+              </defs>
+              <circle class="ring-bg" cx="60" cy="60" r="52" />
+              <circle id="ringFg" class="ring-fg" cx="60" cy="60" r="52" />
+            </svg>
+            <div class="ring-center">
+              <div id="roomIcon" class="room-icon">🏠</div>
+              <div id="confidence" class="confidence">0%</div>
+              <div class="muted">confidence</div>
+            </div>
+          </div>
+
+          <h3 id="roomType" class="room-type">—</h3>
+          <p id="roomDesc" class="muted center"></p>
+
+          <div id="bars" class="bars"></div>
+        </div>
+      </section>
+
+      <section class="card history-card reveal">
+        <div class="card-head tight">
+          <h2>Recent</h2>
+          <button id="clearHistory" class="link-btn" type="button">Clear</button>
+        </div>
+        <ul id="history" class="history"><li class="muted small">No predictions yet.</li></ul>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="foot">Built with FastAPI + scikit-learn · Dark UI</footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
